@@ -10,7 +10,9 @@ import android.os.Looper
 import android.os.Message
 import android.util.Log
 import android.widget.Button
+import android.widget.EditText
 import androidx.appcompat.widget.Toolbar
+import com.google.android.material.textfield.TextInputEditText
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -19,6 +21,8 @@ class MainActivity : AppCompatActivity() {
     private val TAG: String = javaClass.name
     private val CONNECTING_STATUS = 1
     private val MESSAGE_READ = 2
+    private val CONNECT_SUCCESS = 1
+    private val CONNECT_FAIL = -1
     private var selectedDevice: String? = null
     private lateinit var bluetoothSocket: BluetoothSocket
     private lateinit var handler: Handler
@@ -38,6 +42,19 @@ class MainActivity : AppCompatActivity() {
         var toolbar = findViewById<Toolbar>(R.id.toolbar)
         toolbar.subtitle = "Connect to device"
 
+        var sendButton = findViewById<Button>(R.id.sendButton)
+        sendButton.isEnabled = false
+
+        var sendTextBox = findViewById<EditText>(R.id.sendText)
+        sendTextBox.isEnabled = false
+
+        sendButton.setOnClickListener {
+            sendButton.isEnabled = false
+            connectThread.send(sendTextBox.text.toString() + "\n")
+            sendButton.isEnabled = true
+            sendTextBox.text.clear()
+        }
+
         selectedDevice = intent.getStringExtra("deviceName")
         if (selectedDevice != null) {
             val deviceAddress = intent.getStringExtra("deviceAddress")
@@ -52,20 +69,26 @@ class MainActivity : AppCompatActivity() {
         handler = object : Handler(Looper.getMainLooper()) {
             override fun handleMessage(msg: Message) {
                 super.handleMessage(msg)
-                Log.i(TAG, "Received message: ${msg.what}")
+
                 when (msg.what) {
-                    CONNECTING_STATUS -> when (msg.arg1) {
-                        1 -> {
-                            toolbar.subtitle = "Connected to ${selectedDevice}"
-                        }
-                        -1 -> {
-                            toolbar.subtitle = "Failed to connect"
+                    CONNECTING_STATUS -> {
+                        Log.i(TAG, "Received message type: ${msg.what}, ${msg.arg1}")
+                        when (msg.arg1) {
+                            CONNECT_SUCCESS -> {
+                                toolbar.subtitle = "Connected to $selectedDevice"
+                                sendTextBox.isEnabled = true
+                                sendButton.isEnabled = true
+                            }
+                            CONNECT_FAIL -> {
+                                toolbar.subtitle = "Failed to connect"
+                            }
                         }
                     }
                     MESSAGE_READ -> {
                         // This is a message from the receiver
                         val received = msg.obj.toString().lowercase()
                         Log.i(TAG, "Received message: $received")
+                        connectThread.send("asdf\r\n")
                     }
                 }
             }
@@ -91,13 +114,15 @@ class MainActivity : AppCompatActivity() {
             try {
                 bluetoothSocket.connect()
                 Log.i("ConnectThread", "Device connected")
-                handler.obtainMessage(CONNECTING_STATUS, 1, -1).sendToTarget()
+                handler.obtainMessage(CONNECTING_STATUS, CONNECT_SUCCESS, CONNECT_FAIL).sendToTarget()
             } catch (connectException: IOException) {
                 try {
                     bluetoothSocket.close()
                     Log.e(TAG,"Could not connect to target", connectException)
                 } catch (closeException: IOException) {
-                    Log.e("ConnectThread", "Could not connect to device", closeException)
+                    Log.e("ConnectThread", "Could not close socket", closeException)
+                } finally {
+                    handler.obtainMessage(CONNECTING_STATUS, CONNECT_FAIL).sendToTarget()
                 }
                 return
             }
@@ -111,24 +136,34 @@ class MainActivity : AppCompatActivity() {
         private var outputstream: OutputStream = socket.outputStream
 
         override fun run() {
-            var buffer = CharArray(1024)
-            var bytes = 0
-
             while (true) {
                 try {
-                    buffer[bytes] = inputStream.read().toChar()
-                    if (buffer[bytes] == '\n') {
-                        val message = String(buffer, 0, bytes)
-                        Log.i("Connect thread", "new message $message")
-                        handler.obtainMessage(MESSAGE_READ,message).sendToTarget()
-                        bytes = 0
-                    } else {
-                        bytes++
-                    }
+                    var buffer = ByteArray(1024)
+                    inputStream.read(buffer)
+                    val message = buffer.toString()
+                    Log.i("Connect thread", "new message $message")
+                    handler.obtainMessage(MESSAGE_READ, message).sendToTarget()
                 } catch (e: IOException) {
                     Log.e("ConnectThread", "IO Error!", e)
                     break
                 }
+            }
+        }
+
+        fun send(input: String) {
+            val bytesToSend = input.toByteArray()
+            try {
+                outputstream.write(bytesToSend)
+            } catch (e: IOException) {
+                Log.e("ConnectThread", "unable to send", e)
+            }
+        }
+
+        fun close() {
+            try {
+                socket.close()
+            } catch (e: IOException) {
+                // explode
             }
         }
     }
