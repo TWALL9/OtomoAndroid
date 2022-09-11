@@ -13,9 +13,9 @@ import android.widget.Button
 import android.widget.EditText
 import androidx.appcompat.widget.Toolbar
 import com.google.android.material.textfield.TextInputEditText
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
+import java.io.*
+import java.nio.Buffer
+import java.nio.charset.Charset
 
 class MainActivity : AppCompatActivity() {
     private val TAG: String = javaClass.name
@@ -88,7 +88,6 @@ class MainActivity : AppCompatActivity() {
                         // This is a message from the receiver
                         val received = msg.obj.toString().lowercase()
                         Log.i(TAG, "Received message: $received")
-                        connectThread.send("asdf\r\n")
                     }
                 }
             }
@@ -136,11 +135,12 @@ class MainActivity : AppCompatActivity() {
         private var outputstream: OutputStream = socket.outputStream
 
         override fun run() {
+            var bufferedReader = BufferedReader(InputStreamReader(inputStream))
             while (true) {
                 try {
-                    var buffer = ByteArray(1024)
-                    inputStream.read(buffer)
-                    val message = buffer.toString()
+                    val message = bufferedReader.readLine()
+//                    var buffer = ByteArray(1024)
+//                    val message = String(buffer, Charset.defaultCharset())
                     Log.i("Connect thread", "new message $message")
                     handler.obtainMessage(MESSAGE_READ, message).sendToTarget()
                 } catch (e: IOException) {
