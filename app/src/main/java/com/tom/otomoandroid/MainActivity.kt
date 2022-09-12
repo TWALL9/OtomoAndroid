@@ -11,8 +11,11 @@ import android.os.Message
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
+import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import com.google.android.material.textfield.TextInputEditText
+import io.github.controlwear.virtual.joystick.android.JoystickView
+import io.github.controlwear.virtual.joystick.android.JoystickView.OnMoveListener
 import java.io.*
 import java.nio.Buffer
 import java.nio.charset.Charset
@@ -27,6 +30,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bluetoothSocket: BluetoothSocket
     private lateinit var handler: Handler
     private lateinit var connectThread: ConnectThread
+
+    private var mAngle = 0
+    private var mStrength = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +71,21 @@ class MainActivity : AppCompatActivity() {
             val createConnectThread = CreateConnectThread(btAdapter, deviceAddress)
             createConnectThread.start()
         }
+
+        val strengthView = findViewById<TextView>(R.id.strength_id)
+        val angleView = findViewById<TextView>(R.id.angle_id)
+
+        val joystickView = findViewById<JoystickView>(R.id.joystickView_left)
+        joystickView.setOnMoveListener(OnMoveListener { angle, strength ->
+            angleView.text = "$angle°"
+            strengthView.text = "$strength%"
+            if (sendButton.isEnabled && (mAngle != angle || mStrength != strength)) {
+                Log.d(TAG, "$angle°, $strength%")
+                mAngle = angle
+                mStrength = strength
+                connectThread.send("$angle\n")
+            }
+        })
 
         handler = object : Handler(Looper.getMainLooper()) {
             override fun handleMessage(msg: Message) {
