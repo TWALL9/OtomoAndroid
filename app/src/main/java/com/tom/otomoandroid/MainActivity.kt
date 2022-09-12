@@ -13,12 +13,10 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
-import com.google.android.material.textfield.TextInputEditText
 import io.github.controlwear.virtual.joystick.android.JoystickView
 import io.github.controlwear.virtual.joystick.android.JoystickView.OnMoveListener
 import java.io.*
-import java.nio.Buffer
-import java.nio.charset.Charset
+
 
 class MainActivity : AppCompatActivity() {
     private val TAG: String = javaClass.name
@@ -130,7 +128,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun run() {
-            val adapter = BluetoothAdapter.getDefaultAdapter()
+//            val adapter = BluetoothAdapter.getDefaultAdapter()
             try {
                 bluetoothSocket.connect()
                 Log.i("ConnectThread", "Device connected")
