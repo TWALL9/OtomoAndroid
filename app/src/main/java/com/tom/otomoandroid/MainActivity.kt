@@ -183,7 +183,7 @@ class MainActivity : AppCompatActivity() {
         fun send(input: ByteArray) {
             try {
                 outputstream.write(input)
-                outputstream.write("\n".toByteArray())
+                outputstream.write(0xFF)
             } catch (e: IOException) {
                 Log.e("ConnectThread", "unable to send", e)
             }
