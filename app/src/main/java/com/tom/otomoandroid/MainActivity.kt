@@ -16,6 +16,7 @@ import androidx.appcompat.widget.Toolbar
 import io.github.controlwear.virtual.joystick.android.JoystickView
 import io.github.controlwear.virtual.joystick.android.JoystickView.OnMoveListener
 import java.io.*
+import com.tom.otomoproto.TopMsg
 
 
 class MainActivity : AppCompatActivity() {
@@ -81,7 +82,8 @@ class MainActivity : AppCompatActivity() {
                 Log.d(TAG, "$angle°, $strength%")
                 mAngle = angle
                 mStrength = strength
-                connectThread.send("$angle\n")
+                val msg = TopMsg().new_joystick(strength.toFloat(), angle.toFloat())
+                connectThread.send(msg)
             }
         })
 
@@ -173,6 +175,15 @@ class MainActivity : AppCompatActivity() {
             val bytesToSend = input.toByteArray()
             try {
                 outputstream.write(bytesToSend)
+            } catch (e: IOException) {
+                Log.e("ConnectThread", "unable to send", e)
+            }
+        }
+
+        fun send(input: ByteArray) {
+            try {
+                outputstream.write(input)
+                outputstream.write("\n".toByteArray())
             } catch (e: IOException) {
                 Log.e("ConnectThread", "unable to send", e)
             }

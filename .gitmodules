@@ -1,3 +1,4 @@
 [submodule "otomoproto/src/main/otomo-protobuf"]
 	path = otomoproto/src/main/otomo-protobuf
-	url = https://github.com/TWALL9/otomo-protobuf.git
+	url = git@github.com:TWALL9/otomo-protobuf.git
+
