@@ -80,10 +80,17 @@ class MainActivity : AppCompatActivity() {
             strengthView.text = "$strength%"
             if (sendButton.isEnabled && (mAngle != angle || mStrength != strength)) {
                 Log.d(TAG, "$angle°, $strength%")
-                mAngle = angle
-                mStrength = strength
-                val msg = TopMsg().new_joystick(strength.toFloat(), angle.toFloat())
-                connectThread.send(msg)
+                var sends = 0
+                if (strength == 0) {
+                   sends = 4
+                }
+
+                for (i in 0..sends) {
+                    mAngle = angle
+                    mStrength = strength
+                    val msg = TopMsg().new_joystick(strength.toFloat(), angle.toFloat())
+                    connectThread.send(msg)
+                }
             }
         })
 
